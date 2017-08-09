@@ -1,0 +1,40 @@
+Issue description
+-----------------
+https://issues.jboss.org/browse/JBEAP-10094 [GSS](7.0.5 patch) SSL EJB Client stuck in AbstractHandleableCloseable.close
+
+Issue platform/DB/JVM dependency
+--------------------------------
+depends on platform: NOT
+depends on DB      : NOT
+depends on JVM     : NOT
+
+
+Issue verification
+------------------
+- unzip EAP distro
+- copy ssl/server.keystore to $EAP_HOME/standalone/configuration
+- add user to EAP with this command:  bin/add-user.sh -a -g users -u joe -p joeIsAwesome2013!
+- prepare EAP config:
+
+/core-service=management/security-realm=SSLRealm:add
+/core-service=management/security-realm=SSLRealm/server-identity=ssl:add(keystore-password=123456, keystore-relative-to=jboss.server.config.dir, keystore-path=server.keystore)
+/core-service=management/security-realm=SSLRealm/authentication=truststore:add(keystore-path=server.keystore, keystore-relative-to=jboss.server.config.dir, keystore-password=123456)
+reload
+/subsystem=undertow/server=default-server/https-listener=https:add(socket-binding=https, security-realm=SSLRealm)
+/subsystem=remoting/http-connector=https-remoting-connector:add(connector-ref=https, security-realm=ApplicationRealm)
+- build server side, deploy
+- run client side using mvn exec:exec
+
+
+How to test with the patch:
+- install patched XNIO and Remoting jars from the patch to your local maven repo (use mvn install:install-file)
+- change the client side's pom to run with the patched jars
+
+If testing without the patch, the cilent will get stuck after some time (this takes something between 20 seconds and 2 minutes for me) - it will stop printing into its standard output
+With the patch applied, the client should continue running until killed manually
+
+
+Verified by
+-----------
+jmartisk@redhat.com
+last update 2017-04-10
